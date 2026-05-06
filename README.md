@@ -4,7 +4,7 @@ The `damsecure` CLI brings the [damsecure](https://damsecure.ai) security layer 
 
 ## Install
 
-    curl https://raw.githubusercontent.com/dam-secure/cli/main/install.sh | sh
+    curl -fsSL https://github.com/dam-secure/cli/releases/latest/download/install.sh | sh
 
 Supported on macOS and Linux (amd64 + arm64). The installer:
 
@@ -15,7 +15,11 @@ Supported on macOS and Linux (amd64 + arm64). The installer:
 
 ## Pinning a specific version
 
-    DAMSECURE_VERSION=v0.1.0 curl https://raw.githubusercontent.com/dam-secure/cli/main/install.sh | sh
+    curl -fsSL https://github.com/dam-secure/cli/releases/download/v0.1.0/install.sh | sh
+
+Or via env var if you already have the latest installer:
+
+    DAMSECURE_VERSION=v0.1.0 curl -fsSL https://github.com/dam-secure/cli/releases/latest/download/install.sh | sh
 
 ## Manually verifying a release
 
