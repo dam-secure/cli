@@ -1,0 +1,5 @@
+# Customer trust anchor — every change requires maintainer review.
+*                          @wesley-damsecure
+/install.sh                @wesley-damsecure
+/.github/                  @wesley-damsecure
+/SECURITY.md               @wesley-damsecure
