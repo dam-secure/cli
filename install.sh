@@ -74,6 +74,39 @@ verify_checksum() {
   fi
 }
 
+install_binary() {
+  local src="$1"
+  if [ ! -f "$src" ] || [ ! -x "$src" ]; then
+    error "Source binary $src missing or not executable"
+  fi
+
+  mkdir -p "$DAMSECURE_DIR" "$LOCAL_BIN"
+
+  # Atomic in-place upgrade: copy to .new, then rename.
+  cp "$src" "${DAMSECURE_DIR}/${BINARY_NAME}.new"
+  chmod +x "${DAMSECURE_DIR}/${BINARY_NAME}.new"
+  mv "${DAMSECURE_DIR}/${BINARY_NAME}.new" "${DAMSECURE_DIR}/${BINARY_NAME}"
+
+  # Remove legacy /usr/local/bin install if present.
+  if [ -f "/usr/local/bin/${BINARY_NAME}" ] || [ -L "/usr/local/bin/${BINARY_NAME}" ]; then
+    rm -f "/usr/local/bin/${BINARY_NAME}" 2>/dev/null || sudo rm -f "/usr/local/bin/${BINARY_NAME}"
+  fi
+
+  ln -sf "${DAMSECURE_DIR}/${BINARY_NAME}" "${LOCAL_BIN}/${BINARY_NAME}"
+}
+
+warn_if_path_missing() {
+  case ":${PATH}:" in
+    *":${LOCAL_BIN}:"*) return 0 ;;
+  esac
+  warn "${LOCAL_BIN} is not on your PATH."
+  echo ""
+  info "Add this to your shell profile, then restart your terminal:"
+  echo ""
+  echo "  export PATH=\"${LOCAL_BIN}:\$PATH\""
+  echo ""
+}
+
 main() {
   local os arch
   os="$(detect_os)"
