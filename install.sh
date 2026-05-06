@@ -107,12 +107,82 @@ warn_if_path_missing() {
   echo ""
 }
 
+RELEASE_BASE_URL_DEFAULT="https://github.com/dam-secure/cli/releases/download"
+
+download_release() {
+  local version="$1" os="$2" arch="$3" dest="$4"
+  local archive="damsecure_${version}_${os}_${arch}.tar.gz"
+  local base="${DAMSECURE_RELEASE_BASE_URL:-${RELEASE_BASE_URL_DEFAULT}/${version}}"
+
+  info "Downloading ${archive} from ${base}"
+  curl -fsSL --retry 1 --retry-delay 2 -o "${dest}/${archive}"     "${base}/${archive}"
+  curl -fsSL --retry 1 --retry-delay 2 -o "${dest}/checksums.txt"  "${base}/checksums.txt"
+  echo "${archive}"
+}
+
+extract_release() {
+  local dest="$1" archive="$2"
+  ( cd "$dest" && tar -xzf "$archive" )
+  if [ ! -x "${dest}/${BINARY_NAME}" ]; then
+    error "Archive did not contain an executable ${BINARY_NAME}"
+  fi
+}
+
+interactive_setup() {
+  if [ -n "${CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ]; then
+    info "CI environment detected — skipping interactive setup."
+    return 0
+  fi
+  if [ "${DAMSECURE_SKIP_SETUP:-0}" = "1" ]; then
+    info "DAMSECURE_SKIP_SETUP set — skipping interactive setup."
+    return 0
+  fi
+
+  echo ""
+  echo "Which editor are you using?"
+  echo "  1) Claude"
+  echo "  2) Cursor"
+  printf "Enter 1 or 2: "
+  read -r choice || true
+
+  local platform
+  case "${choice:-}" in
+    1) platform="claude" ;;
+    2) platform="cursor" ;;
+    *) info "Skipping hook setup. Run 'damsecure setup claude' or 'damsecure setup cursor' later."; return 0 ;;
+  esac
+
+  if ! "${LOCAL_BIN}/${BINARY_NAME}" setup "$platform"; then
+    warn "damsecure setup didn't finish cleanly. Run it again with: damsecure setup $platform"
+    return 1
+  fi
+}
+
 main() {
-  local os arch
-  os="$(detect_os)"
-  arch="$(detect_arch)"
+  info "Installing damsecure CLI..."
+
+  local os arch version archive workdir
+  os="${DAMSECURE_TEST_OS:-$(detect_os)}"
+  arch="${DAMSECURE_TEST_ARCH:-$(detect_arch)}"
   info "Detected platform: ${os}/${arch}"
-  # Remainder of flow lands in subsequent tasks.
+
+  version="$(resolve_version)"
+  info "Installing version ${version}"
+
+  workdir="$(mktemp -d)"
+  # shellcheck disable=SC2064  # intentional eager-expansion: workdir is a local
+  trap "rm -rf '$workdir'" EXIT
+
+  archive="$(download_release "$version" "$os" "$arch" "$workdir")"
+  ( cd "$workdir" && verify_checksum "$archive" checksums.txt )
+  info "Verified ${archive}"
+
+  extract_release "$workdir" "$archive"
+  install_binary "${workdir}/${BINARY_NAME}"
+  info "Installed to ${DAMSECURE_DIR}/${BINARY_NAME}"
+
+  warn_if_path_missing
+  interactive_setup
 }
 
 if [ "$SOURCE_ONLY" -eq 0 ]; then

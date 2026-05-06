@@ -176,3 +176,23 @@ teardown() { teardown_install_env; }
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }
+
+@test "main: full flow with local mirror" {
+  # Stand up a fake mirror in $TEST_TMPDIR.
+  local archive="damsecure_v0.1.0_linux_amd64.tar.gz"
+  cp "tests/fixtures/$archive" "$TEST_TMPDIR/$archive"
+  cp tests/fixtures/checksums.txt "$TEST_TMPDIR/checksums.txt"
+
+  export DAMSECURE_VERSION=v0.1.0
+  export DAMSECURE_SKIP_SETUP=1
+  export DAMSECURE_RELEASE_BASE_URL="file://$TEST_TMPDIR"
+  # Force the script's OS/arch helpers to match the fixture.
+  export DAMSECURE_TEST_OS=linux
+  export DAMSECURE_TEST_ARCH=amd64
+
+  run bash ./install.sh
+  [ "$status" -eq 0 ]
+  [ -x "$HOME/.damsecure/bin/damsecure" ]
+  [[ "$output" == *"Detected platform"* ]]
+  [[ "$output" == *"Verified"* ]]
+}
