@@ -40,6 +40,22 @@ detect_arch() {
   esac
 }
 
+RELEASES_API="https://api.github.com/repos/dam-secure/cli/releases/latest"
+
+resolve_version() {
+  if [ -n "${DAMSECURE_VERSION:-}" ]; then
+    echo "$DAMSECURE_VERSION"
+    return 0
+  fi
+  local body tag
+  body="$(curl -fsSL "$RELEASES_API")" || return 1
+  tag="$(echo "$body" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)"
+  if [ -z "$tag" ]; then
+    error "Could not determine latest version from $RELEASES_API"
+  fi
+  echo "$tag"
+}
+
 main() {
   local os arch
   os="$(detect_os)"

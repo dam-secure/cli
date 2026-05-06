@@ -67,3 +67,30 @@ teardown() { teardown_install_env; }
   [ "$status" -ne 0 ]
   [[ "$output" == *"Unsupported"* ]]
 }
+
+@test "resolve_version honors DAMSECURE_VERSION env" {
+  source ./install.sh --source-only
+  DAMSECURE_VERSION="v1.2.3"
+  run resolve_version
+  [ "$status" -eq 0 ]
+  [ "$output" = "v1.2.3" ]
+}
+
+@test "resolve_version queries GitHub when DAMSECURE_VERSION unset" {
+  source ./install.sh --source-only
+  unset DAMSECURE_VERSION
+  curl() { echo '{"tag_name":"v9.9.9","name":"damsecure 9.9.9"}'; }
+  export -f curl
+  run resolve_version
+  [ "$status" -eq 0 ]
+  [ "$output" = "v9.9.9" ]
+}
+
+@test "resolve_version errors when GitHub returns no tag_name" {
+  source ./install.sh --source-only
+  unset DAMSECURE_VERSION
+  curl() { echo '{"message":"Not Found"}'; }
+  export -f curl
+  run resolve_version
+  [ "$status" -ne 0 ]
+}
