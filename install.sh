@@ -56,6 +56,24 @@ resolve_version() {
   echo "$tag"
 }
 
+sha256_tool() {
+  if command -v sha256sum >/dev/null 2>&1; then echo sha256sum
+  elif command -v shasum    >/dev/null 2>&1; then echo "shasum -a 256"
+  else error "Need sha256sum or shasum on PATH."
+  fi
+}
+
+verify_checksum() {
+  local archive="$1" checksums="$2"
+  if ! grep -q "[[:space:]]\+${archive}\$" "$checksums"; then
+    error "Archive $archive not present in $checksums"
+  fi
+  local tool; tool="$(sha256_tool)"
+  if ! grep "[[:space:]]\+${archive}\$" "$checksums" | $tool -c -; then
+    error "Checksum verification failed for $archive"
+  fi
+}
+
 main() {
   local os arch
   os="$(detect_os)"

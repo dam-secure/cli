@@ -94,3 +94,34 @@ teardown() { teardown_install_env; }
   run resolve_version
   [ "$status" -ne 0 ]
 }
+
+@test "verify_checksum passes for matching archive" {
+  source ./install.sh --source-only
+  cp tests/fixtures/damsecure_v0.1.0_linux_amd64.tar.gz "$TEST_TMPDIR/"
+  cp tests/fixtures/checksums.txt "$TEST_TMPDIR/"
+  pushd "$TEST_TMPDIR" >/dev/null
+  run verify_checksum damsecure_v0.1.0_linux_amd64.tar.gz checksums.txt
+  popd >/dev/null
+  [ "$status" -eq 0 ]
+}
+
+@test "verify_checksum fails when archive is tampered" {
+  source ./install.sh --source-only
+  cp tests/fixtures/damsecure_v0.1.0_linux_amd64.tar.gz "$TEST_TMPDIR/"
+  cp tests/fixtures/checksums.txt "$TEST_TMPDIR/"
+  echo "tampered" >> "$TEST_TMPDIR/damsecure_v0.1.0_linux_amd64.tar.gz"
+  pushd "$TEST_TMPDIR" >/dev/null
+  run verify_checksum damsecure_v0.1.0_linux_amd64.tar.gz checksums.txt
+  popd >/dev/null
+  [ "$status" -ne 0 ]
+}
+
+@test "verify_checksum fails when archive is missing from checksums.txt" {
+  source ./install.sh --source-only
+  cp tests/fixtures/damsecure_v0.1.0_linux_amd64.tar.gz "$TEST_TMPDIR/"
+  echo "deadbeef  some_other_archive.tar.gz" > "$TEST_TMPDIR/checksums.txt"
+  pushd "$TEST_TMPDIR" >/dev/null
+  run verify_checksum damsecure_v0.1.0_linux_amd64.tar.gz checksums.txt
+  popd >/dev/null
+  [ "$status" -ne 0 ]
+}

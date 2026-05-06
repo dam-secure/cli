@@ -2,3 +2,7 @@
 *.tar.gz
 checksums.txt
 /tmp/
+
+# Test fixtures need to be committed even though they match the patterns above.
+!tests/fixtures/*.tar.gz
+!tests/fixtures/checksums.txt
