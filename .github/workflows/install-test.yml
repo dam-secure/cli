@@ -1,0 +1,50 @@
+name: Install script
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  bats:
+    name: bats unit tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - run: sudo apt-get update && sudo apt-get install -y bats
+      - run: bats tests/install.bats
+
+  integration:
+    name: integration ${{ matrix.os }}
+    needs: bats
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Run install script (skip setup)
+        env:
+          DAMSECURE_SKIP_SETUP: "1"
+          CI: "true"
+        run: |
+          bash ./install.sh
+          export PATH="$HOME/.local/bin:$PATH"
+          damsecure --version
+      - name: Re-run install script (idempotency)
+        env:
+          DAMSECURE_SKIP_SETUP: "1"
+          CI: "true"
+        run: |
+          bash ./install.sh
+          export PATH="$HOME/.local/bin:$PATH"
+          damsecure --version
